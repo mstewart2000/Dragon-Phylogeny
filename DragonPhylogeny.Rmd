@@ -1,0 +1,150 @@
+---
+title: "Dragon Phylogeny"
+author: "mstewart2000"
+date: "09/03/2022"
+output: html_document
+GitHub: https://github.com/mstewart2000/Dragon-Phylogeny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Dragons Added
+These are the images of Dragons that I added to the dataset for my assignment
+
+![Unknown Artist: https://monster.fandom.com/wiki/Dragon?file=DragonRed.jpg](./images/Dragon1.jpg)
+
+![Jordi Gonzalez: https://awoiaf.westeros.org/index.php/Dragon](./images/Dragon2.jpg)
+
+![Unknown Artist: https://www.facebook.com/DragonManiaLegends/](./images/Dragon3.jpg)
+
+Their traits were added to the data matrix in the input file
+
+# Inital Setup
+I will load in the data set
+```{r}
+library(ape)
+DragonNexus = read.nexus.data("Input/DragonMatrix.nex")
+head(DragonNexus)
+```
+
+#Creating a Distance Matrix
+I will now create a distance matrix based on the data
+
+This means first creating a data frame object
+```{r}
+DragonNexusDF = data.frame(matrix(unlist(DragonNexus), ncol = 78, byrow = T))
+row.names(DragonNexusDF) = names(DragonNexus)
+head(DragonNexusDF)
+```
+
+Now I will calculate the distance
+```{r}
+DragonDist = dist(DragonNexusDF, method = "binary")
+DragonDistMat = as.matrix(DragonDist)
+```
+
+# Visulalizing the Distance Matrix
+Now I will rearrange the data so that it can be viewed using ggplot
+```{r}
+library(reshape2)
+PDat = melt(DragonDistMat)
+```
+
+Now I will build the plot
+```{r}
+library(ggplot2)
+ggplot(PDat, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = c("white", "blue", "green","red")) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+# Adjusting Weights
+Now I will adjust the weights of the different traits
+
+First I must get the weights from the project github
+```{r}
+WeightsDat = read.csv("Input/Weights.csv")
+```
+
+Now I will create a single vector of weights so that they can be effectively assigned
+```{r}
+Weights = paste0(WeightsDat$Weight, collapse = "")
+Weights = strsplit(Weights, split = "")[[1]]
+```
+
+Now I will assign each letter a number value
+```{r}
+WeightsNum = rep(NA, length(Weights))
+for(i in 1:length(WeightsNum)){
+  if(Weights[i] %in% LETTERS){
+    WeightsNum[i] = which(LETTERS==Weights[i]) + 9
+  } else {
+    WeightsNum[i] = Weights[i]
+  }
+}
+WeightsNum = as.numeric(WeightsNum)
+```
+
+Now I will mulitply the weight value by the trait vector
+```{r}
+WtDragonNexus = DragonNexus
+for(i in 1:length(DragonNexus)){
+  RepWeight = DragonNexus[[i]]==1
+  WtDragonNexus[[i]][RepWeight] = WeightsNum[RepWeight]
+  RepWeight = NA
+}
+```
+
+# Calculate Distance Matrix
+Now I will calculate the distance matrix 
+```{r}
+WtDragonNexusDF = data.frame(matrix(unlist(WtDragonNexus), ncol = 78, byrow = T))
+row.names(WtDragonNexusDF) = names(WtDragonNexus)
+WtDragonDist = dist(WtDragonNexusDF, method = "euclidean")
+WtDragonDistMat = as.matrix(WtDragonDist)
+```
+
+I will now plot this distance matrix
+```{r}
+WtPDat = melt(WtDragonDistMat)
+ggplot(WtPDat, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = c("white", "blue", "green","red")) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+# Plotting the Tree
+Now I will plot the tree
+
+```{r}
+WtDragonTree = fastme.bal((WtDragonDist))
+ggtree(WtDragonTree, layout = "circular")
+```
+
+Now I will clean up this basic tree and make it better to look at begging by adding names
+```{r}
+Country = gsub("[0-9\\.]+([^X]+)X*", "\\1", WtDragonTree$tip.label)
+CountryGroups = split(WtDragonTree$tip.label, Country)
+WtDTcol = groupOTU(WtDragonTree, CountryGroups)
+```
+
+With this done, the tree will now look better once I re-build it
+```{r}
+ggtree(WtDTcol, layout = "circular", aes(colour = group)) +
+  geom_tiplab(size = 2, aes(angle = angle))
+```
+
+```{r}
+WtDTclade<-groupClade(WtDragonTree,.node=c(142,128,103,90,80))
+ggtree(WtDTclade,layout="circular",aes(colour=group)) + 
+  geom_cladelabel(node=142,label="Serpentidae",hjust=0.5,offset.text=4,fontsize=3,angle=-45) +
+  geom_cladelabel(node=128,label="Wyvernidae",hjust=0.5,offset.text=4,fontsize=3,angle=15) +
+  geom_cladelabel(node=103,label="Orientalia",hjust=0.5,offset.text=4,fontsize=3,angle=40) +
+  geom_cladelabel(node=90,label="Dracopteronidae",hjust=0.5,offset.text=4,fontsize=3,angle=-55) +
+  geom_cladelabel(node=80,label="Dracoverisidae",hjust=0.5,offset.text=6,fontsize=3,angle=55) +
+  xlim(NA,60)
+```
+
