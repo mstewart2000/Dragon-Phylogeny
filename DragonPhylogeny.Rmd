@@ -22,43 +22,14 @@ These are the images of Dragons that I added to the dataset for my assignment
 Their traits were added to the data matrix in the input file
 
 # Inital Setup
-I will load in the data set
+I will load in the data set and required packages
 ```{r}
 library(ape)
+library(reshape2)
+library(ggplot2)
+library(ggtree)
 DragonNexus = read.nexus.data("Input/DragonMatrix.nex")
 head(DragonNexus)
-```
-
-#Creating a Distance Matrix
-I will now create a distance matrix based on the data
-
-This means first creating a data frame object
-```{r}
-DragonNexusDF = data.frame(matrix(unlist(DragonNexus), ncol = 78, byrow = T))
-row.names(DragonNexusDF) = names(DragonNexus)
-head(DragonNexusDF)
-```
-
-Now I will calculate the distance
-```{r}
-DragonDist = dist(DragonNexusDF, method = "binary")
-DragonDistMat = as.matrix(DragonDist)
-```
-
-# Visulalizing the Distance Matrix
-Now I will rearrange the data so that it can be viewed using ggplot
-```{r}
-library(reshape2)
-PDat = melt(DragonDistMat)
-```
-
-Now I will build the plot
-```{r}
-library(ggplot2)
-ggplot(PDat, aes(x = Var1, y = Var2, fill = value)) +
-  geom_tile() +
-  scale_fill_gradientn(colours = c("white", "blue", "green","red")) +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 # Adjusting Weights
@@ -137,14 +108,10 @@ ggtree(WtDTcol, layout = "circular", aes(colour = group)) +
   geom_tiplab(size = 2, aes(angle = angle))
 ```
 
+As you can see based on the above chart, two of the three dragons I have picked appear to be closely related, while, unsurprisingly, the third is distinct from the others. This is shown better by this version of the tree.
 ```{r}
-WtDTclade<-groupClade(WtDragonTree,.node=c(142,128,103,90,80))
-ggtree(WtDTclade,layout="circular",aes(colour=group)) + 
-  geom_cladelabel(node=142,label="Serpentidae",hjust=0.5,offset.text=4,fontsize=3,angle=-45) +
-  geom_cladelabel(node=128,label="Wyvernidae",hjust=0.5,offset.text=4,fontsize=3,angle=15) +
-  geom_cladelabel(node=103,label="Orientalia",hjust=0.5,offset.text=4,fontsize=3,angle=40) +
-  geom_cladelabel(node=90,label="Dracopteronidae",hjust=0.5,offset.text=4,fontsize=3,angle=-55) +
-  geom_cladelabel(node=80,label="Dracoverisidae",hjust=0.5,offset.text=6,fontsize=3,angle=55) +
-  xlim(NA,60)
+ggtree(WtDTcol, layout = "circular", aes(colour = group)) +
+  geom_tiplab(size = 2, aes(angle = angle)) +
+  scale_colour_manual(values = c("grey", "grey", "red", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey", "grey"))
 ```
 
